@@ -49,3 +49,29 @@ export const globalErrorHandler = (err: any, req: Request, res: Response, next: 
         error: err.stack
     })
 }
+
+
+
+// import { NextFunction, Request, Response } from "express";
+// import { AppError } from "../errors/AppError";
+
+// export const globalErrorHandler = (
+//   err: any,
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   if (err instanceof AppError) {
+//     return res.status(err.statusCode).json({
+//       success: false,
+//       message: err.message,
+//       errorDetails: err.errorDetails ?? [],
+//     });
+//   }
+
+//   return res.status(500).json({
+//     success: false,
+//     message: "Something went wrong",
+//     errorDetails: [],
+//   });
+// };

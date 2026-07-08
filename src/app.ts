@@ -4,6 +4,7 @@ import express, { Application, Request, Response } from "express";
 import config from "./config";
 import { globalErrorHandler } from "./middlewares/globalErrorHandler";
 import { notFound } from "./middlewares/notFound";
+import { authRoutes } from "./modules/auth/auth.route";
 
 
 
@@ -29,7 +30,7 @@ app.get("/",(req : Request, res : Response) => {
 
 
 // app.use("/api/users", userRoutes)
-// app.use("/api/auth", authRoutes)
+app.use("/api/auth", authRoutes)
 // app.use("/api/posts", postRoutes)
 // app.use("/api/comments", commentRoutes)
 // app.use("/api/subscription", subscriptionRoutes)
