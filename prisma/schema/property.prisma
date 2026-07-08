@@ -5,6 +5,7 @@ model Property {
   price          Float
   location       String
   amenities      String[]
+  images         String[]
   isAvailable    Boolean         @default(true)
   landlordId     String
   landlord       User            @relation("LandlordProperties", fields: [landlordId], references: [id])
