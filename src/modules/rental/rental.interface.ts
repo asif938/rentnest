@@ -15,3 +15,4 @@ export interface IRentalQuery {
 export interface IIdParams {
     id: string;
 }
+
