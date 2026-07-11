@@ -17,5 +17,11 @@ router.patch(
   LandlordController.updateRentalStatus
 );
 
+router.get(
+  "/dashboard",
+  auth(Role.LANDLORD),
+  LandlordController.getDashboard
+);
+
 
 export const LandlordRoutes = router

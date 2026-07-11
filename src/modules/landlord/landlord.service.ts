@@ -1,91 +1,91 @@
-import { Prisma, RequestStatus } from "../../../generated/prisma/client";
+import { PaymentStatus, Prisma, RequestStatus } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { ILandlordRentalQuery } from "./landlord.interface";
 import httpStatus from 'http-status';
 
 const getLandlordRequests = async (
-    landlordId: string,
-    query: ILandlordRentalQuery
+  landlordId: string,
+  query: ILandlordRentalQuery
 ) => {
 
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
-    const skip = (page - 1) * limit;
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
 
-    const where: Prisma.RentalRequestWhereInput = {
+  const where: Prisma.RentalRequestWhereInput = {
 
-        property: {
-            landlordId,
+    property: {
+      landlordId,
+    },
+
+  };
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  const total = await prisma.rentalRequest.count({
+    where,
+  });
+
+  const rentals = await prisma.rentalRequest.findMany({
+    where,
+
+    skip,
+
+    take: limit,
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    include: {
+
+      tenant: {
+
+        select: {
+          id: true,
+          name: true,
+          email: true,
+
+          reviews: {
+
+            select: {
+              rating: true,
+            },
+
+          },
+
         },
 
-    };
+      },
 
-    if (query.status) {
-        where.status = query.status;
-    }
-
-    const total = await prisma.rentalRequest.count({
-        where,
-    });
-
-    const rentals = await prisma.rentalRequest.findMany({
-        where,
-
-        skip,
-
-        take: limit,
-
-        orderBy: {
-            createdAt: "desc",
-        },
+      property: {
 
         include: {
-
-            tenant: {
-
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-
-                    reviews: {
-
-                        select: {
-                            rating: true,
-                        },
-
-                    },
-
-                },
-
-            },
-
-            property: {
-
-                include: {
-                    category: true,
-                },
-
-            },
-
-            payment: true,
-
+          category: true,
         },
 
-    });
+      },
 
-    return {
+      payment: true,
 
-        meta: {
-            page,
-            limit,
-            total,
-        },
+    },
 
-        data: rentals,
+  });
 
-    };
+  return {
+
+    meta: {
+      page,
+      limit,
+      total,
+    },
+
+    data: rentals,
+
+  };
 
 };
 
@@ -194,7 +194,139 @@ const updateRentalStatus = async (
   return updatedRental;
 };
 
+const getDashboard = async (landlordId: string) => {
+
+  const [
+    totalProperties,
+    availableProperties,
+
+    totalRequests,
+    pendingRequests,
+    approvedRequests,
+    completedRequests,
+
+    paymentStats,
+    recentRequests,
+  ] = await prisma.$transaction([
+
+    prisma.property.count({
+      where: {
+        landlordId,
+      },
+    }),
+
+    prisma.property.count({
+      where: {
+        landlordId,
+        isAvailable: true,
+      },
+    }),
+
+    prisma.rentalRequest.count({
+      where: {
+        property: {
+          landlordId,
+        },
+      },
+    }),
+
+    prisma.rentalRequest.count({
+      where: {
+        property: {
+          landlordId,
+        },
+        status: RequestStatus.PENDING,
+      },
+    }),
+
+    prisma.rentalRequest.count({
+      where: {
+        property: {
+          landlordId,
+        },
+        status: RequestStatus.APPROVED,
+      },
+    }),
+
+    prisma.rentalRequest.count({
+      where: {
+        property: {
+          landlordId,
+        },
+        status: RequestStatus.COMPLETED,
+      },
+    }),
+
+    prisma.payment.aggregate({
+      where: {
+        status: PaymentStatus.COMPLETED,
+        rentalRequest: {
+          property: {
+            landlordId,
+          },
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+      _count: true,
+    }),
+
+    prisma.rentalRequest.findMany({
+      where: {
+        property: {
+          landlordId,
+        },
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        property: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+    }),
+
+  ]);
+
+  return {
+    properties: {
+      total: totalProperties,
+      available: availableProperties,
+      rented: totalProperties - availableProperties,
+    },
+
+    rentalRequests: {
+      total: totalRequests,
+      pending: pendingRequests,
+      approved: approvedRequests,
+      completed: completedRequests,
+    },
+
+    earnings: {
+      totalRevenue: paymentStats._sum.amount ?? 0,
+      completedPayments: paymentStats._count,
+    },
+
+    recentRequests,
+  };
+};
+
 export const LandlordService = {
-    getLandlordRequests,
-    updateRentalStatus
+  getLandlordRequests,
+  updateRentalStatus,
+  getDashboard
 }
