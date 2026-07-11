@@ -10,6 +10,8 @@ import { PropertyRoutes } from "./modules/property/property.route";
 import { RentalRoutes } from "./modules/rental/rental.route";
 import { LandlordRoutes } from "./modules/landlord/landlord.route";
 import { PaymentRoutes } from "./modules/payment/payment.route";
+import { ReviewRoutes } from "./modules/review/review.route";
+import { AdminRoutes } from "./modules/admin/admin.route";
 
 
 
@@ -41,6 +43,8 @@ app.use("/api/properties", PropertyRoutes)
 app.use("/api/rentals", RentalRoutes)
 app.use("/api/landlord", LandlordRoutes)
 app.use("/api/payments", PaymentRoutes)
+app.use("/api/reviews", ReviewRoutes);
+app.use("/api/admin", AdminRoutes);
 
 
 app.use(notFound)

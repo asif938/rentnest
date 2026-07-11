@@ -1,0 +1,137 @@
+import { Prisma, Role } from "../../../generated/prisma/client";
+import { prisma } from "../../lib/prisma";
+import { AppError } from "../../utils/AppError";
+import { IGetUsersQuery } from "./admin.interface";
+import httpStatus from 'http-status';
+
+const getAllUsers = async (
+    query: IGetUsersQuery
+) => {
+
+    const {
+        searchTerm,
+        role,
+        page = "1",
+        limit = "10",
+        sortBy = "createdAt",
+        sortOrder = "desc",
+    } = query;
+
+    const where: Prisma.UserWhereInput = {};
+
+    if (searchTerm) {
+        where.OR = [
+            {
+                name: {
+                    contains: searchTerm,
+                    mode: "insensitive",
+                },
+            },
+            {
+                email: {
+                    contains: searchTerm,
+                    mode: "insensitive",
+                },
+            },
+        ];
+    }
+
+    if (role) {
+        where.role = role;
+    }
+
+    const skip =
+        (Number(page) - 1) * Number(limit);
+
+    const [users, total] = await prisma.$transaction([
+
+        prisma.user.findMany({
+            where,
+            skip,
+            take: Number(limit),
+
+            orderBy: {
+                [sortBy]: sortOrder,
+            },
+
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                phone: true,
+                profilePhoto: true,
+                createdAt: true,
+            },
+        }),
+
+        prisma.user.count({
+            where,
+        }),
+
+    ]);
+
+    return {
+
+        meta: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+        },
+
+        data: users,
+
+    };
+
+};
+
+const updateUserStatus = async (
+    userId: string,
+    isBanned: boolean
+) => {
+
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+    });
+
+    if (!user) {
+        throw new AppError(
+            httpStatus.NOT_FOUND,
+            "User not found"
+        );
+    }
+
+    if (user.role === Role.ADMIN) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Admin account cannot be banned"
+        );
+    }
+
+    const updatedUser = await prisma.user.update({
+        where: {
+            id: userId,
+        },
+        data: {
+            isBanned,
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isBanned: true,
+            createdAt: true,
+            updatedAt: true,
+        },
+    });
+
+    return updatedUser;
+};
+
+export const AdminService = {
+    getAllUsers,
+    updateUserStatus
+};

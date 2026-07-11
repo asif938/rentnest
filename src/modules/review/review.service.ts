@@ -1,0 +1,145 @@
+import httpStatus from "http-status";
+
+import { prisma } from "../../lib/prisma";
+
+import { AppError } from "../../utils/AppError";
+
+import { ICreateReview } from "./review.interface";
+
+import { PaymentStatus, RequestStatus } from "../../../generated/prisma/enums";
+
+const createReview = async (tenantId: string, payload: ICreateReview) => {
+
+    const property = await prisma.property.findUnique({
+        where: {
+            id: payload.propertyId,
+        },
+    });
+
+    if (!property) {
+        throw new AppError(
+            httpStatus.NOT_FOUND,
+            "Property not found"
+        );
+    }
+
+    const rental = await prisma.rentalRequest.findFirst({
+        where: {
+            tenantId,
+            propertyId: payload.propertyId,
+            status: RequestStatus.COMPLETED,
+        },
+        include: {
+            payment: true,
+        },
+    });
+
+    if (!rental) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "You can review only after completing the rental."
+        );
+    }
+
+    if (!rental.payment || rental.payment.status !== PaymentStatus.COMPLETED) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Payment must be completed before reviewing."
+        );
+    }
+
+    const existingReview = await prisma.review.findFirst({
+        where: {
+            tenantId,
+            propertyId: payload.propertyId,
+        },
+    });
+
+    if (existingReview) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "You have already reviewed this property."
+        );
+    }
+
+    const review = await prisma.review.create({
+        data: {
+            tenantId,
+            propertyId: payload.propertyId,
+            rating: payload.rating,
+            comment: payload.comment,
+        },
+        include: {
+            tenant: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    });
+
+    return review;
+};
+
+
+const getPropertyReviews = async (
+    propertyId: string
+) => {
+
+    const property = await prisma.property.findUnique({
+        where: {
+            id: propertyId,
+        },
+    });
+
+    if (!property) {
+        throw new AppError(
+            httpStatus.NOT_FOUND,
+            "Property not found"
+        );
+    }
+
+    const reviews = await prisma.review.findMany({
+        where: {
+            propertyId,
+        },
+        include: {
+            tenant: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    const totalReviews = reviews.length;
+
+    const averageRating =
+        totalReviews === 0
+            ? 0
+            : Number(
+                (
+                    reviews.reduce(
+                        (sum, review) => sum + review.rating,
+                        0
+                    ) / totalReviews
+                ).toFixed(1)
+            );
+
+    return {
+        propertyId,
+        averageRating,
+        totalReviews,
+        reviews,
+    };
+};
+
+export const ReviewService = {
+    createReview,
+    getPropertyReviews
+};
