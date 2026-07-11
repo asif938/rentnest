@@ -1,4 +1,4 @@
-import { Prisma, Role } from "../../../generated/prisma/client";
+import { PaymentStatus, Prisma, RequestStatus, Role } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { IGetUsersQuery } from "./admin.interface";
@@ -254,9 +254,119 @@ const getAllRentals = async () => {
     return rentals;
 };
 
+const getDashboard = async () => {
+
+    const [
+        totalUsers,
+        totalTenants,
+        totalLandlords,
+
+        totalProperties,
+        availableProperties,
+
+        totalRentals,
+        pendingRentals,
+        approvedRentals,
+        completedRentals,
+
+        totalPayments,
+
+        paymentAggregate,
+    ] = await prisma.$transaction([
+
+        prisma.user.count(),
+
+        prisma.user.count({
+            where: {
+                role: Role.TENANT,
+            },
+        }),
+
+        prisma.user.count({
+            where: {
+                role: Role.LANDLORD,
+            },
+        }),
+
+        prisma.property.count(),
+
+        prisma.property.count({
+            where: {
+                isAvailable: true,
+            },
+        }),
+
+        prisma.rentalRequest.count(),
+
+        prisma.rentalRequest.count({
+            where: {
+                status: RequestStatus.PENDING,
+            },
+        }),
+
+        prisma.rentalRequest.count({
+            where: {
+                status: RequestStatus.APPROVED,
+            },
+        }),
+
+        prisma.rentalRequest.count({
+            where: {
+                status: RequestStatus.COMPLETED,
+            },
+        }),
+
+        prisma.payment.count({
+            where: {
+                status: PaymentStatus.COMPLETED,
+            },
+        }),
+
+        prisma.payment.aggregate({
+            where: {
+                status: PaymentStatus.COMPLETED,
+            },
+            _sum: {
+                amount: true,
+            },
+        }),
+
+    ]);
+
+    return {
+
+        users: {
+            total: totalUsers,
+            tenants: totalTenants,
+            landlords: totalLandlords,
+        },
+
+        properties: {
+            total: totalProperties,
+            available: availableProperties,
+            rented: totalProperties - availableProperties,
+        },
+
+        rentals: {
+            total: totalRentals,
+            pending: pendingRentals,
+            approved: approvedRentals,
+            completed: completedRentals,
+        },
+
+        payments: {
+            completedPayments: totalPayments,
+            totalRevenue: paymentAggregate._sum.amount ?? 0,
+        },
+
+    };
+
+};
+
 export const AdminService = {
     getAllUsers,
     updateUserStatus,
     getAllProperties,
-    getAllRentals
+    getAllRentals,
+    getDashboard
 };
