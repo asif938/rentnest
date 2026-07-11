@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import { ICreateReview } from "./review.interface";
+import { ICreateReview, IUpdateReview } from "./review.interface";
 import { PaymentStatus, RequestStatus } from "../../../generated/prisma/enums";
 
 const createReview = async (tenantId: string, payload: ICreateReview) => {
@@ -135,7 +135,70 @@ const getPropertyReviews = async (
     };
 };
 
+const updateReview = async (
+    tenantId: string,
+    reviewId: string,
+    payload: IUpdateReview
+) => {
+
+    const review = await prisma.review.findUnique({
+        where: {
+            id: reviewId,
+        },
+    });
+
+    if (!review) {
+        throw new AppError(
+            httpStatus.NOT_FOUND,
+            "Review not found"
+        );
+    }
+
+    if (review.tenantId !== tenantId) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "You are not allowed to update this review"
+        );
+    }
+
+    const data: IUpdateReview = {};
+
+    if (payload.rating !== undefined) {
+
+        if (payload.rating < 1 || payload.rating > 5) {
+            throw new AppError(
+                httpStatus.BAD_REQUEST,
+                "Rating must be between 1 and 5"
+            );
+        }
+
+        data.rating = payload.rating;
+    }
+
+    if (payload.comment !== undefined) {
+        data.comment = payload.comment.trim();
+    }
+
+    const updatedReview = await prisma.review.update({
+        where: {
+            id: reviewId,
+        },
+        data,
+        include: {
+            tenant: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    });
+
+    return updatedReview;
+};
+
 export const ReviewService = {
     createReview,
-    getPropertyReviews
+    getPropertyReviews,
+    updateReview
 };

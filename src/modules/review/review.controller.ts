@@ -91,7 +91,31 @@ const getPropertyReviews = catchAsync(
   }
 );
 
+const updateReview = catchAsync(
+  async (
+    req: Request,
+    res: Response
+  ) => {
+
+    const result = await ReviewService.updateReview(
+      req.user!.id,
+      req.params.id as string,
+      req.body
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Review updated successfully",
+      data: result,
+    });
+
+  }
+);
+
+
 export const ReviewController = {
   createReview,
-  getPropertyReviews
+  getPropertyReviews,
+  updateReview
 };

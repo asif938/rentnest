@@ -7,3 +7,8 @@ export interface ICreateReview {
 export interface IPropertyReviewParams {
   propertyId: string;
 }
+
+export interface IUpdateReview {
+  rating?: number;
+  comment?: string;
+}

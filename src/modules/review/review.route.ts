@@ -7,5 +7,6 @@ const router = Router();
 
 router.post("/", auth(Role.TENANT), ReviewController.createReview);
 router.get("/property/:propertyId", ReviewController.getPropertyReviews);
+router.patch("/:id", auth(Role.TENANT), ReviewController.updateReview);
 
 export const ReviewRoutes = router;
