@@ -33,4 +33,5 @@ router.delete(
   PropertyController.deleteProperty
 );
 
+
 export const PropertyRoutes = router;

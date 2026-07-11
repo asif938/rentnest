@@ -1,7 +1,8 @@
 model Payment {
   id              String        @id @default(uuid())
 
-  transactionId   String        @unique
+  transactionId   String?        @unique
+  stripeSessionId String?        @unique
 
   rentalRequestId String        @unique
   rentalRequest   RentalRequest @relation(fields: [rentalRequestId], references: [id])

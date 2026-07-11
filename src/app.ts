@@ -9,6 +9,7 @@ import { CategoryRoutes } from "./modules/category/category.route";
 import { PropertyRoutes } from "./modules/property/property.route";
 import { RentalRoutes } from "./modules/rental/rental.route";
 import { LandlordRoutes } from "./modules/landlord/landlord.route";
+import { PaymentRoutes } from "./modules/payment/payment.route";
 
 
 
@@ -21,7 +22,7 @@ app.use(cors({
 }))
 
 
-// app.use("/api/subscription/webhook", express.raw({ type: 'application/json' }))
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended : true }));
@@ -39,6 +40,7 @@ app.use("/api/categories", CategoryRoutes)
 app.use("/api/properties", PropertyRoutes)
 app.use("/api/rentals", RentalRoutes)
 app.use("/api/landlord", LandlordRoutes)
+app.use("/api/payments", PaymentRoutes)
 
 
 app.use(notFound)

@@ -28,7 +28,8 @@ export const globalErrorHandler = (
     errorDetails = [
       {
         field: "request",
-        message: "Invalid or missing data.",
+        // message: "Invalid or missing data.",
+        message: err.message,
       },
     ];
   }
