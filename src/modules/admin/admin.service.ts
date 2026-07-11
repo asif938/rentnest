@@ -131,7 +131,132 @@ const updateUserStatus = async (
     return updatedUser;
 };
 
+const getAllProperties = async () => {
+
+    const properties = await prisma.property.findMany({
+        include: {
+            landlord: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                },
+            },
+
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+
+            reviews: {
+                select: {
+                    rating: true,
+                },
+            },
+        },
+    });
+
+    const formattedProperties = properties.map((property) => {
+
+        const ratings = property.reviews.map(
+            (review) => review.rating
+        );
+
+        const totalReviews = ratings.length;
+
+        const averageRating =
+            totalReviews === 0
+                ? 0
+                : Number(
+                    (
+                        ratings.reduce((sum, rating) => sum + rating, 0) /
+                        totalReviews
+                    ).toFixed(1)
+                );
+
+        return {
+            id: property.id,
+            title: property.title,
+            description: property.description,
+            price: property.price,
+            location: property.location,
+            amenities: property.amenities,
+            images: property.images,
+            isAvailable: property.isAvailable,
+            createdAt: property.createdAt,
+            updatedAt: property.updatedAt,
+            landlord: property.landlord,
+            category: property.category,
+            averageRating,
+            totalReviews,
+        };
+
+    });
+
+    return formattedProperties;
+};
+
+const getAllRentals = async () => {
+
+    const rentals = await prisma.rentalRequest.findMany({
+        include: {
+
+            tenant: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                },
+            },
+
+            property: {
+                include: {
+
+                    landlord: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+
+                },
+            },
+
+            payment: {
+                select: {
+                    id: true,
+                    amount: true,
+                    provider: true,
+                    method: true,
+                    status: true,
+                    transactionId: true,
+                    paidAt: true,
+                },
+            },
+
+        },
+
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    return rentals;
+};
+
 export const AdminService = {
     getAllUsers,
-    updateUserStatus
+    updateUserStatus,
+    getAllProperties,
+    getAllRentals
 };

@@ -17,4 +17,16 @@ router.patch(
   AdminController.updateUserStatus
 );
 
+router.get(
+  "/properties",
+  auth(Role.ADMIN),
+  AdminController.getAllProperties
+);
+
+router.get(
+  "/rentals",
+  auth(Role.ADMIN),
+  AdminController.getAllRentals
+);
+
 export const AdminRoutes = router;
