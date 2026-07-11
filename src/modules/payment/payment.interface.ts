@@ -9,3 +9,7 @@ export interface IPaymentQuery {
   limit?: string;
   status?: PaymentStatus;
 }
+
+export interface IPaymentParams {
+  id: string;
+}

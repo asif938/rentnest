@@ -233,8 +233,69 @@ const getPaymentHistory = async (
 
 };
 
+const getSinglePayment = async (
+  tenantId: string,
+  paymentId: string
+) => {
+
+  const payment = await prisma.payment.findUnique({
+    where: {
+      id: paymentId,
+    },
+    include: {
+      rentalRequest: {
+        include: {
+          property: {
+            select: {
+              id: true,
+              title: true,
+              location: true,
+              price: true,
+              images: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!payment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Payment not found"
+    );
+  }
+
+  if (payment.rentalRequest.tenantId !== tenantId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to view this payment"
+    );
+  }
+
+  return {
+    id: payment.id,
+    amount: payment.amount,
+    provider: payment.provider,
+    method: payment.method,
+    status: payment.status,
+    paidAt: payment.paidAt,
+    createdAt: payment.createdAt,
+
+    rentalRequest: {
+      id: payment.rentalRequest.id,
+      startDate: payment.rentalRequest.startDate,
+      endDate: payment.rentalRequest.endDate,
+
+      property: payment.rentalRequest.property,
+    },
+  };
+
+};
+
 export const PaymentService = {
     createPayment,
     handleWebhook,
-    getPaymentHistory
+    getPaymentHistory,
+    getSinglePayment
 };
