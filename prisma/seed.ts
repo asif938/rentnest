@@ -48,10 +48,3 @@ main()
   });
 
 
-// Admin Credentials
-
-// Email:
-// admin@rentnest.com
-
-// Password:
-// Admin@123
