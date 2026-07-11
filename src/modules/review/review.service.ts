@@ -197,8 +197,42 @@ const updateReview = async (
     return updatedReview;
 };
 
+const deleteReview = async (
+    tenantId: string,
+    reviewId: string
+) => {
+
+    const review = await prisma.review.findUnique({
+        where: {
+            id: reviewId,
+        },
+    });
+
+    if (!review) {
+        throw new AppError(
+            httpStatus.NOT_FOUND,
+            "Review not found"
+        );
+    }
+
+    if (review.tenantId !== tenantId) {
+        throw new AppError(
+            httpStatus.FORBIDDEN,
+            "You are not allowed to delete this review"
+        );
+    }
+
+    await prisma.review.delete({
+        where: {
+            id: reviewId,
+        },
+    });
+
+};
+
 export const ReviewService = {
     createReview,
     getPropertyReviews,
-    updateReview
+    updateReview,
+    deleteReview
 };
